@@ -1,2 +1,3 @@
 # SSH-Web-Agent
-Currently no licence
+
+Project for Web Technologies and Applications course
