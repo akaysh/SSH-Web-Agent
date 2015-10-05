@@ -1,5 +1,8 @@
 import socket, random, sys, json
 from message import Message
+from Crypto.Random import random
+from Crypto.PublicKey import DSA
+from Crypto.Hash import SHA
 
 def isPrime(p):
     if(p==2): return True
@@ -22,7 +25,7 @@ session_message['id'] = "SSHWebAgent"
 # VERSION_1_1
 session_message['version'] = '0x11'
 
-
+# Request Type
 session_message['type'] = request()
 
 # p,e,g,k,d
@@ -31,20 +34,28 @@ session_message['type'] = request()
 a = 10
 b = 1000
 
+# Server and client agree to use modulus p and base g
 p = random.choice([i for i in cached_primes if a<i<b])
-print p
+# print p
 
+# Using a default value for g
 g = 2
 
-# Computed value
+# Key, Signature parameters
+key = DSA.generate(1024)
+
+# Let's sign the session data
+h = SHA.new(d).digest()
+
+# Random number k
+k = random.StrongRandom().randint(1, key.q-1)
+signature = key.sign(h,k)z
+
+# Computed value of session variable
 e = 'default_session'
 
 # Empty session data
 d = ''
-
-# Key, Signature parameters
-k = 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCk38MafOpY4mXqDZ6+oIyXm1hblk6p1RO9c7750jL5x09+RzSW46WGFnrgqAL51gKNCpT1MqCrZtLiA5SzbT7NaQQfMywY7mxT1p5xsd2aKdRI9DgAoRuB+VXVWSfMflgf7bZuTr6HnMeiBZ9ucu/2T5QzMszHcHJ9qhUDBS4VUyWEWftGZumQrre3/K8DOIEAK2YnCYxKJsZFlUYvgtDRh+7wlBwVASZh/OK0MMfFQtpmcLrmMaLGp4P+gO8hP1MaECQVE3dEGYeBvvD8fJa0UY52DnfOHI4THPlevegGoX04eEqQ3pCRCHP5nbRZruEkh6+DVFXdLOSlSpnVuribXbBiKp7alYGjlnYbgcW0wqY0JQ9dC5DC0ydusrU6MeJd3vx2NzyIu03RCwx2nPQHLPIJiY+gTiQky0Znz/FCB0X71xtexgSfapU/g3EBWYaNYy96C5hzAWZRReWlDLJVfv0ja7KVv4LVcU4wo7lgMWDfStOyPfSAkaTHlD9wMo2UjR7jXK6ykE0a2ym/vJ79anFU0k6hnKmox+rjhRrk40O3Lh2BkYa15yhnlPfJb9RBoPhMZVNA9QSkilHaFSVwUr8VxohTlCEnTETH/mMr2H6VjlPsapdbgvXfzKI1ExGQ3URmr94D951OCYG6E/qAt8hswdGZiB1dw5XtW/TjOw== chinmay1dd@gmail.com'
-sign = 'signauture'
 
 try:
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -58,8 +69,8 @@ data += str(p) + ';'
 data += str(b) + ';'
 data += e + ';'
 data += d + ';'
-data += k + ';'
-data += sign
+data += key + ';'
+data += signature
 
 # Empty tuple
 session_message['data'] = data
