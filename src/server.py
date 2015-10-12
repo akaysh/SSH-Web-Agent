@@ -1,22 +1,5 @@
 from imports import *
 
-# Add message identification
-def identify(session_message):
-	session_message['id'] = "SSHWebAgent"
-	return session_message
-
-# Add message version
-def version(session_message):
-	# VERSION_1_1 (0x11)
-	session_message['version'] = 0x11
-	return session_message
-
-# Add request type
-def request(session_message):
-	# KEX_DH_REQUEST = 0x02
-	session_message['type'] = 0x02
-	return session_message
-
 # Diffie-Hellman key exchange parameters
 def diffie_hellman():
 	# dh is an object of type `DiffieHellman` 
@@ -29,10 +12,6 @@ def diffie_hellman():
 	g = dh.generator
 
 	return 	p,g
-
-# Returns computed value of trusted server in key exchange
-def trusted_server():
-	return 'default'
 
 # Returns session_data if any added by trusted server, It shall be used by SSH-WebAgent without interpretation
 def session_data():
@@ -57,21 +36,15 @@ def signature(data):
 	pubKey = open('../.ssh/id_rsa.pub').read()
 
 	pubKey = pubKey.strip("-----BEGIN PUBLIC KEY-----\n").strip("-----END PUBLIC KEY-----")
+
 	return pubKey, signature
 
-
-if __name__ == "__main__":
-	# Declare a session message variable to be sent as json
-	session_message = {}
-
-	# Add id
-	session_message = identify(session_message)
-
-	# Add versioning
-	session_message = version(session_message)
-
+def session_request():
+	# Create a message template
+	request_message = message()
+	
 	# Add request type
-	session_message = request(session_message)
+	request_message = request(request_message, 'KEX_DH_REQUEST')
 
 	# Generate diffie_hellman key exchange parameters
 	p,g = diffie_hellman()
@@ -86,24 +59,23 @@ if __name__ == "__main__":
 	k, sign = signature(d)
 
 	# Use ~ as delimiter for data parameters
-	session_message['data'] = ""
-	session_message['data'] += str(p)
-	session_message['data'] += '~' + str(g)
+	request_message['data'] = ""
+	request_message['data'] += str(p)
+	request_message['data'] += '~' + str(g)
 
-	session_message['data'] += '~' + str(e)
-	session_message['data'] += '~' + str(d)
-	session_message['data'] += '~' + str(k)
-	session_message['data'] += '~' + str(sign)
+	request_message['data'] += '~' + str(e)
+	request_message['data'] += '~' + str(d)
+	request_message['data'] += '~' + str(k)
+	request_message['data'] += '~' + str(sign)
+
+	return request_message	
+
+if __name__ == "__main__":
 
 	# Socket-based transfer of data
 	source_ip = '127.0.0.1'
 	tcp_port = 8008
-	packet = json.dumps(session_message)
-
-	'''
-	TBD
-	===
-	'''
+	request_packet = json.dumps(session_request)
 
 	try:
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -116,7 +88,7 @@ if __name__ == "__main__":
 	except:
 		print "Host not up! Exiting..."
 		sys.exit()
-	s.send(packet)
+	s.send(request_packet)
 	s.close()
 
-	print "[*] Sent Data."
+	print "[+] Sent Data."

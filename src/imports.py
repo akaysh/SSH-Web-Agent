@@ -6,3 +6,4 @@ from Crypto.Hash import SHA256
 
 from message import Message
 from DH import DiffieHellman
+from functions import *
