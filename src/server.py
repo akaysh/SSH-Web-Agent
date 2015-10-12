@@ -1,8 +1,11 @@
 from imports import *
 
+# global variable dh_key
+dh_key = 0
+
 # Diffie-Hellman key exchange parameters
 def diffie_hellman():
-	# dh is an object of type `DiffieHellman` 
+	# dh is an object of type `DiffieHellman`
 	dh = DiffieHellman()
 
 	# Server and client agree to use modulus p and base g
@@ -11,7 +14,10 @@ def diffie_hellman():
 	p = dh.prime
 	g = dh.generator
 
-	return 	p,g
+	# self chosen random integer for DH key exchange
+	global dh_key = random.randbits(64)
+
+	return	p,g
 
 # Returns session_data if any added by trusted server, It shall be used by SSH-WebAgent without interpretation
 def session_data():
@@ -19,7 +25,7 @@ def session_data():
 
 # Returns publicKey and signature to be sent to the trusted server
 def signature(data):
-	# Key, Signature parameters for RSA. 
+	# Key, Signature parameters for RSA.
 
 	# Signing the message with private key
 	f = open('../.ssh/id_rsa', 'r')
@@ -35,6 +41,7 @@ def signature(data):
 	# Public Key
 	pubKey = open('../.ssh/id_rsa.pub').read()
 
+	# Strip first and last lines of the public key(format)
 	pubKey = pubKey.strip("-----BEGIN PUBLIC KEY-----\n").strip("-----END PUBLIC KEY-----")
 
 	return pubKey, signature
@@ -42,7 +49,7 @@ def signature(data):
 def session_request():
 	# Create a message template
 	request_message = message()
-	
+
 	# Add request type
 	request_message = request(request_message, 'KEX_DH_REQUEST')
 
@@ -68,7 +75,7 @@ def session_request():
 	request_message['data'] += '~' + str(k)
 	request_message['data'] += '~' + str(sign)
 
-	return request_message	
+	return request_message
 
 if __name__ == "__main__":
 
