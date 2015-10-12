@@ -88,11 +88,16 @@ if __name__ == "__main__":
 	# Session data
 	d = session_data()
 
-	# Add to message
-	session_message['data'] = d
-
 	# Get key and signature
 	k, sign = signature(d)
+
+	session_message['data'] += '\n' + str(p)
+	session_message['data'] += '\n' + str(g)
+
+	session_message['data'] += '\n' + str(e)
+	session_message['data'] += '\n' + str(d)
+	session_message['data'] += '\n' + str(k)
+	session_message['data'] += '\n' + str(sign)
 
 	# Socket-based transfer of data
 	source_ip = '127.0.0.1'
@@ -102,6 +107,7 @@ if __name__ == "__main__":
 	'''
 	TBD
 	===
+	'''
 
 	try:
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -114,5 +120,3 @@ if __name__ == "__main__":
 	s.close()
 
 	print "[*] Sent Data."
-
-	'''

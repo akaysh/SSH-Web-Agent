@@ -17,7 +17,6 @@ class ClientThread(threading.Thread):
         # print message
 
 def process():
-    
 
 if __name__ == "__main__"
     host = "0.0.0.0"
