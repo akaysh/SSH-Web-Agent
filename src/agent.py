@@ -1,5 +1,21 @@
 from imports import *
 
+
+def isTrusted(pkey, referer):
+    print 'here'
+    allowed_referers = []
+    f = open('./trusted.txt', 'r')
+    for line in f:
+        print line
+        if line == pkey:
+            while line != ".":
+                allowed_referers.append(f.readline())
+            if referer in allowed_referers:
+                return True
+            else:
+                return False
+    return False
+
 class ClientThread(threading.Thread):
 
     def __init__(self, ip, port, socket):
@@ -12,9 +28,25 @@ class ClientThread(threading.Thread):
     def run(self):
         print "Connection from: "+ip+":"+str(port)
         data = self.socket.recv(10240).strip()
-        print data
         message = json.loads(data)
-        # process(message)
+        messageType = message['type']
+
+        # KEY_DH_REQUEST
+        if messageType == 2:
+            parameters = dict()
+            temp_params = message["data"].split("~")
+            parameters['p'] = temp_params[0]
+            parameters['g'] = temp_params[1]
+            parameters['e'] = temp_params[2]
+            parameters['d'] = temp_params[3]
+            parameters['k'] = temp_params[4]
+            parameters['sign'] = temp_params[5]
+
+            print parameters['k'], ip
+
+            if isTrusted(parameters['k'], ip):
+                print "Trusted!"
+
         # print message
 
 if __name__ == "__main__":
