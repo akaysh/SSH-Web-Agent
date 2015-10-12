@@ -1,9 +1,9 @@
 from imports import *
 
-# global variable dh_key
-dh_key = 0
+# global variable B
+B = 0
 
-# Checks if the IP and the referrer are present in the trusted servers file
+# Checks if the IP and the referer are present in the trusted servers file
 def isTrusted(pkey, referer):
     allowed_referers = []
 
@@ -20,7 +20,7 @@ def isTrusted(pkey, referer):
                 pos += 1
                 allowed_referers.append(lines[pos])
             if referer in allowed_referers:
-                # Referrer found!
+                # Referer found!
                 return True
             else:
                 return False
@@ -43,7 +43,34 @@ def verifySignature(pkey, signature, data):
     # Verify if the session_data was actually signed by the trusted server
     return key.verify(hash, signature)
 
-def generate_ciphertext(identifier, secret):
+def compute_secret(p, g, A):
+    # Object of class DiffieHellman
+    dh = DiffieHellman()
+
+    p = long(p)
+    g = long(g)
+    A = long(A)
+
+    # Private key for agent
+    b = dh.privateKey
+
+    global B
+    B = pow(g, b, p)
+
+    # Secret = (A**b)%p
+    return pow(A, b, p)
+
+def compute_shared_secret(method, referer, e, f, S):
+    data = method + referer + str(e) + str(f) + str(S)
+
+    return SHA256.new(data).digest()
+
+def compute_hash(S, shared_secret, identifier, referer):
+    data = str(S) + shared_secret + identifier + referer
+
+    return SHA256.new(data).digest()
+
+def generate_ciphertext(parameters, identifier):
     # Format of unencrypted text
     # byte[4] random
     # byte type
@@ -73,19 +100,31 @@ def generate_ciphertext(identifier, secret):
     # Generate string for encryption
     plaintext = str(r) + str(type_of) + str(identifier) + str(payload) + str(padding)
 
-    # secret as function argument
+    # Secret generated via DH key exchange
+    secret = compute_secret(parameters['p'], parameters['g'], parameters['e'])
 
-def compute_secret(parameters):
-    p = parameters['p']
-    g = parameters['g']
+    # Shared secret computation
+    method = 'POST'
+    referer = '127.0.0.1'
+    # e refers to 'A'
+    e = parameters['e']
+    f = B
+    S = secret
 
-    # dh is an object of class `DiffieHellman`
-    dh = DiffieHellman()
+    # secret computed via DH key exchange
+    shared_secret = compute_shared_secret(method, referer, e, f, S)
 
-    # self chosen random integer for DH key exchange
-    global dh_key = random.randbits(64)
+    # key for AES_CBC mode
+    secret_key = compute_hash(S, shared_secret, 'A', referer)
 
-    # ======================================
+    # Taking first 16 bytes, since iv needs to be 16 bytes in length
+    initialization_vector = compute_hash(S, shared_secret, 'B', referer)[0:16]
+
+    # Ciphertext to be sent via HTTP
+    ciphertext = AES.new(secret_key, AES.MODE_CBC, initialization_vector)
+
+    # ========================================================================
+
 
 def generate_NEW_message_body(parameters):
     # Format
@@ -105,18 +144,15 @@ def generate_NEW_message_body(parameters):
     identifier = '1'
     message_body['session_identifier'] = identifier
 
-    # Generate secret using DH
-    secret = compute_secret(parameters)
-
     # Generate Ciphertext
-    message_body['ciphertext'] = generate_ciphertext(identifier, secret)
+    message_body['ciphertext'] = generate_ciphertext(parameters, identifier)
 
 def session_response(parameters):
     # Initialize a message template
     response_message = message()
 
     # Add request type
-    response_message = request_type(response_message, 'KEX_DH_RESPONSE')
+    response_message = request(response_message, 'KEX_DH_RESPONSE')
 
     # Add computed value of trusted server
     response_message['f'] = trusted_server()
