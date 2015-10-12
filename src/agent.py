@@ -1,7 +1,4 @@
-import socket
-import threading
-import json
-
+import imports import *
 
 class ClientThread(threading.Thread):
 
@@ -16,25 +13,29 @@ class ClientThread(threading.Thread):
         print "Connection from: "+ip+":"+str(port)
         data = self.socket.recv(2048).strip()
         message = json.loads(data)
-        print message
+        process(message)
+        # print message
 
-host = "0.0.0.0"
-port = 8008
+def process():
+    
 
-tcpsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-tcpsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+if __name__ == "__main__"
+    host = "0.0.0.0"
+    port = 8008
 
-tcpsock.bind((host, port))
-threads = []
+    tcpsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    tcpsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-while True:
-    tcpsock.listen(4)
-    print "\nListening for incoming connections..."
-    (clientsock, (ip, port)) = tcpsock.accept()
-    newThread = ClientThread(ip, port, clientsock)
-    newThread.start()
-    threads.append(newThread)
+    tcpsock.bind((host, port))
+    threads = []
 
-for t in threads:
-    t.join()
+    while True:
+        tcpsock.listen(4)
+        print "\nListening for incoming connections..."
+        (clientsock, (ip, port)) = tcpsock.accept()
+        newThread = ClientThread(ip, port, clientsock)
+        newThread.start()
+        threads.append(newThread)
 
+    for t in threads:
+        t.join()

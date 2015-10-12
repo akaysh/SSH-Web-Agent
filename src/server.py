@@ -7,7 +7,7 @@ def identify(session_message):
 
 # Add message version
 def version(session_message):
-	# VERSION_1_1
+	# VERSION_1_1 (0x11)
 	session_message['version'] = 0x11
 	return session_message
 
@@ -19,7 +19,7 @@ def request(session_message):
 
 # Diffie-Hellman key exchange parameters
 def diffie_hellman():
-	# A is an object of type `DiffieHellman` 
+	# dh is an object of type `DiffieHellman` 
 	dh = DiffieHellman()
 
 	# Server and client agree to use modulus p and base g
@@ -40,10 +40,23 @@ def session_data():
 
 # Returns publicKey and signature to be sent to the trusted server
 def signature(data):
-	# Key, Signature parameters for RSA
+	# Key, Signature parameters for RSA. 
+	# Create a new pair for every connection?
 	key = RSA.generate(1024)
+	
+	# Write keys to file
+	pubKey = key.publickey().exportKey()
+	privKey = key.exportKey()
 
-	# Let's sign the session data
+	f = open('../.ssh/id_rsa.pub','w')
+	f.write(pubKey)
+	f.close()
+
+	f = open('../.ssh/id_rsa', 'w')
+	f.write(privKey)
+	f.close()
+
+	# Sign the session data
 	h = SHA256.new(d).digest()
 
 	# Random number k
@@ -86,6 +99,10 @@ if __name__ == "__main__":
 	tcp_port = 8008
 	packet = json.dumps(session_message)
 
+	'''
+	TBD
+	===
+
 	try:
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	except:
@@ -97,3 +114,5 @@ if __name__ == "__main__":
 	s.close()
 
 	print "[*] Sent Data."
+
+	'''
