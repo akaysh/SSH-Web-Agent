@@ -1,7 +1,7 @@
 from imports import *
 
 # global variable dh_key
-dh_key = 0
+A = 0
 
 # Diffie-Hellman key exchange parameters
 def diffie_hellman():
@@ -10,12 +10,12 @@ def diffie_hellman():
 
 	# Server and client agree to use modulus p and base g
 	# A->B
-	# A chooses a secret integer(a.privateKey) and calculates A = (g**a)%p (here a.publicKey)
+	# A chooses a secret integer(dh.privateKey) and calculates A = (g**dh.privateKey)%p (here a.publicKey)
 	p = dh.prime
 	g = dh.generator
 
-	# self chosen random integer for DH key exchange
-	global dh_key = random.randbits(64)
+	global A
+	A = dh.publicKey
 
 	return	p,g
 
@@ -33,7 +33,7 @@ def signature(data):
 	f.close()
 
 	# Sign the session data
-	h = SHA256.new(d).digest()
+	h = SHA256.new(data).digest()
 
 	# Signature
 	signature = key.sign(h,'')
@@ -57,7 +57,7 @@ def session_request():
 	p,g = diffie_hellman()
 
 	# Computed value of trusted server in key-exchange
-	e = trusted_server()
+	e = A
 
 	# Session data
 	d = session_data()
@@ -82,7 +82,7 @@ if __name__ == "__main__":
 	# Socket-based transfer of data
 	source_ip = '127.0.0.1'
 	tcp_port = 8008
-	request_packet = json.dumps(session_request)
+	request_packet = json.dumps(session_request())
 
 	try:
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
