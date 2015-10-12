@@ -2,19 +2,32 @@ from imports import *
 
 
 def isTrusted(pkey, referer):
-    print 'here'
     allowed_referers = []
-    f = open('./trusted.txt', 'r')
-    for line in f:
-        print line
-        if line == pkey:
-            while line != ".":
-                allowed_referers.append(f.readline())
+    lines = open('./trusted.txt', 'r').read().split('\n')
+    p = pkey.replace('\n', '')
+    for idx, line in enumerate(lines):
+        pos = idx
+        if line == p:
+            while lines[pos] != '.':
+                pos += 1
+                allowed_referers.append(lines[pos])
             if referer in allowed_referers:
                 return True
             else:
                 return False
     return False
+
+def verifySignature(pkey, signature, data):
+    pkey = "-----BEGIN PUBLIC KEY-----\n" + pkey + "-----END PUBLIC KEY-----"
+    signature = ast.literal_eval(signature)
+
+    hash = SHA256.new(data).digest()
+    key = RSA.importKey(pkey)
+    print signature, type(signature)
+
+    return key.verify(hash, signature)
+
+
 
 class ClientThread(threading.Thread):
 
@@ -42,10 +55,10 @@ class ClientThread(threading.Thread):
             parameters['k'] = temp_params[4]
             parameters['sign'] = temp_params[5]
 
-            print parameters['k'], ip
-
             if isTrusted(parameters['k'], ip):
                 print "Trusted!"
+                if verifySignature(parameters['k'], parameters['sign'], parameters['d']):
+                    print "Verfied!"
 
         # print message
 
