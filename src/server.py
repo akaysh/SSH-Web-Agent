@@ -41,31 +41,22 @@ def session_data():
 # Returns publicKey and signature to be sent to the trusted server
 def signature(data):
 	# Key, Signature parameters for RSA. 
-	# Create a new pair for every connection?
-	key = RSA.generate(1024)
-	
-	# Write keys to file
-	pubKey = key.publickey().exportKey()
-	privKey = key.exportKey()
 
-	f = open('../.ssh/id_rsa.pub','w')
-	f.write(pubKey)
-	f.close()
-
-	f = open('../.ssh/id_rsa', 'w')
-	f.write(privKey)
+	# Signing the message with private key
+	f = open('../.ssh/id_rsa', 'r')
+	key = RSA.importKey(f.read())
 	f.close()
 
 	# Sign the session data
 	h = SHA256.new(d).digest()
 
-	# Random number k
-	k = random.StrongRandom().randint(1, key.q-1)
+	# Signature
 	signature = key.sign(h,'')
 
-	print pubKey
+	# Public Key
+	pubKey = open('../.ssh/id_rsa.pub').read()
+
 	pubKey = pubKey.strip("-----BEGIN PUBLIC KEY-----\n").strip("-----END PUBLIC KEY-----")
-	print pubKey
 	return pubKey, signature
 
 
