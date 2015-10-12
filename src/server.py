@@ -63,7 +63,10 @@ def signature(data):
 	k = random.StrongRandom().randint(1, key.q-1)
 	signature = key.sign(h,'')
 
-	return k, signature
+	print pubKey
+	pubKey = pubKey.strip("-----BEGIN PUBLIC KEY-----\n").strip("-----END PUBLIC KEY-----")
+	print pubKey
+	return pubKey, signature
 
 
 if __name__ == "__main__":
