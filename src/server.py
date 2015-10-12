@@ -91,14 +91,15 @@ if __name__ == "__main__":
 	# Get key and signature
 	k, sign = signature(d)
 
+	# Use ~ as delimiter for data parameters
 	session_message['data'] = ""
-	session_message['data'] += '\n' + str(p)
-	session_message['data'] += '\n' + str(g)
+	session_message['data'] += str(p)
+	session_message['data'] += '~' + str(g)
 
-	session_message['data'] += '\n' + str(e)
-	session_message['data'] += '\n' + str(d)
-	session_message['data'] += '\n' + str(k)
-	session_message['data'] += '\n' + str(sign)
+	session_message['data'] += '~' + str(e)
+	session_message['data'] += '~' + str(d)
+	session_message['data'] += '~' + str(k)
+	session_message['data'] += '~' + str(sign)
 
 	# Socket-based transfer of data
 	source_ip = '127.0.0.1'
@@ -116,8 +117,11 @@ if __name__ == "__main__":
 		print 'Socket cannot be created.'
 		sys.exit()
 
-	s.connect((source_ip, tcp_port))
-	print packet
+	try:
+		s.connect((source_ip, tcp_port))
+	except:
+		print "Host not up! Exiting..."
+		sys.exit()
 	s.send(packet)
 	s.close()
 
