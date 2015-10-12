@@ -91,6 +91,7 @@ if __name__ == "__main__":
 	# Get key and signature
 	k, sign = signature(d)
 
+	session_message['data'] = ""
 	session_message['data'] += '\n' + str(p)
 	session_message['data'] += '\n' + str(g)
 
@@ -116,6 +117,7 @@ if __name__ == "__main__":
 		sys.exit()
 
 	s.connect((source_ip, tcp_port))
+	print packet
 	s.send(packet)
 	s.close()
 

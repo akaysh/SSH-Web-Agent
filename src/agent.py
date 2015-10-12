@@ -1,4 +1,4 @@
-import imports import *
+from imports import *
 
 class ClientThread(threading.Thread):
 
@@ -11,14 +11,13 @@ class ClientThread(threading.Thread):
 
     def run(self):
         print "Connection from: "+ip+":"+str(port)
-        data = self.socket.recv(2048).strip()
+        data = self.socket.recv(10240).strip()
+        print data
         message = json.loads(data)
-        process(message)
+        # process(message)
         # print message
 
-def process():
-
-if __name__ == "__main__"
+if __name__ == "__main__":
     host = "0.0.0.0"
     port = 8008
 
