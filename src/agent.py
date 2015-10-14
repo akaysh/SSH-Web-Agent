@@ -125,7 +125,6 @@ def generate_ciphertext(parameters, identifier):
 
     # ========================================================================
 
-
 def generate_NEW_message_body(parameters):
     # Format
     # byte algorithm (AES_256_CBC 0x02)
@@ -159,7 +158,7 @@ def session_response(parameters):
 
     # Message body of type `NEW`
     response_message['E'] = generate_NEW_message_body(parameters)
-
+    return response_message
 
 # Returns all packet parameters
 def get_params(params):
@@ -179,40 +178,28 @@ def get_params(params):
 
     return parameters
 
-class ClientThread(threading.Thread):
+def send(message):
+    # Socket-based transfer of data
+    source_ip = '127.0.0.1'
+    tcp_port = 8009
+    request_packet = json.dumps(message)
 
-    def __init__(self, ip, port, socket):
-        threading.Thread.__init__(self)
-        self.ip = ip
-        self.port = port
-        self.socket = socket
-        print "[+] New thread started for "+ip+":"+str(port)
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    except:
+        print 'Socket cannot be created.'
+        sys.exit()
 
-    def run(self):
-        print "Connection from: "+ ip + ":" + str(port)
-        data = self.socket.recv(10240).strip()
-        message = json.loads(data)
-        messageType = message['type']
+    try:
+        s.connect((source_ip, tcp_port))
+    except:
+        print "Host not up! Exiting..."
+        sys.exit()
+    s.send(request_packet)
+    s.close()
+    print "[+] Sent Data."
 
-        # KEY_DH_REQUEST 0x02
-        if messageType == 2:
-            # Parse data using delimiter as `~`
-            packet_data = message["data"].split("~")
-
-            # parameters now has all the data from the packet
-            parameters = get_params(packet_data)
-
-            # Checks if the ip and publicKey are trusted
-            if isTrusted(parameters['k'], ip):
-                print "Trusted!"
-                # Verifies authenticity using signature verification
-                if verifySignature(parameters['k'], parameters['sign'], parameters['d']):
-                    print "Verfied!"
-
-                    # Generate a response message
-                    response_message = session_response(parameters)
-
-if __name__ == "__main__":
+def wait():
     # Declare host and port
     host = "0.0.0.0"
     port = 8008
@@ -235,3 +222,41 @@ if __name__ == "__main__":
     # Join all threads
     for t in threads:
         t.join()
+
+class ClientThread(threading.Thread):
+
+    def __init__(self, ip, port, socket):
+        threading.Thread.__init__(self)
+        self.ip = ip
+        self.port = port
+        self.socket = socket
+        print "[+] New thread started for "+ip+":"+str(port)
+
+    def run(self):
+        print "Connection from: "+ self.ip + ":" + str(self.port)
+        data = self.socket.recv(10240).strip()
+        message = json.loads(data)
+        messageType = message['type']
+
+        # KEY_DH_REQUEST 0x02
+        if messageType == 2:
+            # Parse data using delimiter as `~`
+            packet_data = message["data"].split("~")
+
+            # parameters now has all the data from the packet
+            parameters = get_params(packet_data)
+
+            # Checks if the ip and publicKey are trusted
+            if isTrusted(parameters['k'], self.ip):
+                print "Trusted!"
+                # Verifies authenticity using signature verification
+                if verifySignature(parameters['k'], parameters['sign'], parameters['d']):
+                    print "Verfied!"
+
+                    # Generate a response message
+                    response_message = session_response(parameters)
+                    send(response_message)
+
+if __name__ == "__main__":
+
+    wait()
