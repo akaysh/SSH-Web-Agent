@@ -77,12 +77,50 @@ def session_request():
 
 	return request_message
 
-if __name__ == "__main__":
+class ClientThread(threading.Thread):
 
+    def __init__(self, ip, port, socket):
+        threading.Thread.__init__(self)
+        self.ip = ip
+        self.port = port
+        self.socket = socket
+        print "[+] New thread started for "+ip+":"+str(port)
+
+    def run(self):
+    	print "Connection from: "+ self.ip + ":" + str(self.port)
+    	data = self.socket.recv(10240).strip()
+    	message = json.loads(data)
+    	print message
+
+def wait():
+    # Declare host and port
+    host = "0.0.0.0"
+    port = 8009
+
+    tcpsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    tcpsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    tcpsock.bind((host, port))
+
+    # Threading for multiple clients
+    threads = []
+
+    while True:
+        tcpsock.listen(4)
+        print "\n[+] Listening for incoming connections..."
+        (clientsock, (ip, port)) = tcpsock.accept()
+        newThread = ClientThread(ip, port, clientsock)
+        newThread.start()
+        threads.append(newThread)
+
+    # Join all threads
+    for t in threads:
+        t.join()
+
+def send(message):
 	# Socket-based transfer of data
 	source_ip = '127.0.0.1'
 	tcp_port = 8008
-	request_packet = json.dumps(session_request())
+	request_packet = json.dumps(message)
 
 	try:
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -97,5 +135,10 @@ if __name__ == "__main__":
 		sys.exit()
 	s.send(request_packet)
 	s.close()
-
 	print "[+] Sent Data."
+
+	wait()
+
+if __name__ == "__main__":
+
+	send(session_request())
