@@ -84,7 +84,7 @@ class ClientThread(threading.Thread):
         self.ip = ip
         self.port = port
         self.socket = socket
-        print "[+] New thread started for "+ip+":"+str(port)
+        print "[+] New thread started for " + ip + ":" + str(port)
 
     def run(self):
     	print "Connection from: "+ self.ip + ":" + str(self.port)
