@@ -70,6 +70,15 @@ def compute_hash(S, shared_secret, identifier, referer):
 
     return SHA256.new(data).digest()
 
+def add_padding(plaintext):
+    l = len(plaintext)
+    i = 16
+
+    while l > i:
+        i += 16
+
+    return plaintext + '0'*(i-l)
+
 def generate_ciphertext(parameters, identifier):
     # Format of unencrypted text
     # byte[4] random
@@ -85,9 +94,6 @@ def generate_ciphertext(parameters, identifier):
     # NEW 0x02
     type_of = 0x02
 
-    # identifier(same as mentioned in message_body)
-    idx = identifier
-
     # payload
     # *************TBD**************
     # empty for message of type NEW
@@ -98,7 +104,8 @@ def generate_ciphertext(parameters, identifier):
     padding = ''
 
     # Generate string for encryption
-    plaintext = str(r) + str(type_of) + str(identifier) + str(payload) + str(padding)
+    plaintext = str(r) + str(type_of) + str(identifier) + str(payload)
+    plaintext = add_padding(plaintext)
 
     # Secret generated via DH key exchange
     secret = compute_secret(parameters['p'], parameters['g'], parameters['e'])
@@ -121,9 +128,11 @@ def generate_ciphertext(parameters, identifier):
     initialization_vector = compute_hash(S, shared_secret, 'B', referer)[0:16]
 
     # Ciphertext to be sent via HTTP
-    ciphertext = AES.new(secret_key, AES.MODE_CBC, initialization_vector)
+    aes = AES.new(secret_key, AES.MODE_CBC, initialization_vector)
 
-    # ========================================================================
+    ciphertext = aes.encrypt(plaintext)
+
+    return base64.b64encode(ciphertext)
 
 def generate_NEW_message_body(parameters):
     # Format
@@ -146,6 +155,8 @@ def generate_NEW_message_body(parameters):
     # Generate Ciphertext
     message_body['ciphertext'] = generate_ciphertext(parameters, identifier)
 
+    return message_body
+
 def session_response(parameters):
     # Initialize a message template
     response_message = message()
@@ -158,6 +169,7 @@ def session_response(parameters):
 
     # Message body of type `NEW`
     response_message['E'] = generate_NEW_message_body(parameters)
+    
     return response_message
 
 # Returns all packet parameters
@@ -255,6 +267,7 @@ class ClientThread(threading.Thread):
 
                     # Generate a response message
                     response_message = session_response(parameters)
+                    print response_message
                     send(response_message)
 
 if __name__ == "__main__":

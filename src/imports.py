@@ -1,4 +1,4 @@
-import socket, random, sys, json, pdb, threading, ast
+import socket, random, sys, json, pdb, threading, ast, base64
 
 from Crypto.Random import random
 from Crypto.PublicKey import RSA
