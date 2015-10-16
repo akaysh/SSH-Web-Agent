@@ -1,21 +1,25 @@
 from imports import *
 
-# global variable dh_key
+# A and a refer to DH public and private key respectively
 A = 0
+a = 0
+# DH prime
+p = 0
 
 # Diffie-Hellman key exchange parameters
 def diffie_hellman():
 	# dh is an object of type `DiffieHellman`
 	dh = DiffieHellman()
 
+	global A, a, p
 	# Server and client agree to use modulus p and base g
 	# A->B
 	# A chooses a secret integer(dh.privateKey) and calculates A = (g**dh.privateKey)%p (here a.publicKey)
 	p = dh.prime
 	g = dh.generator
 
-	global A
 	A = dh.publicKey
+	a = dh.privateKey
 
 	return	p,g
 
@@ -77,6 +81,52 @@ def session_request():
 
 	return request_message
 
+def compute_secret(p, B):
+	# Secret = (B**a)%p
+	return pow(B, a, p)
+
+def compute_shared_secret(method, referer, e, f, S):
+    data = method + referer + str(e) + str(f) + str(S)
+
+    return SHA256.new(data).digest()
+
+def compute_hash(S, shared_secret, identifier, referer):
+    data = str(S) + shared_secret + identifier + referer
+
+    return SHA256.new(data).digest()
+
+def authentication_request(message):	
+	# Shared secret computation
+	method = 'POST'
+	referer = '127.0.0.1'
+	# e refers to 'A'
+	e = A
+	# Diffie Hellman public key of agent
+	# f refers to 'B'
+	f = message['f']
+	# secret key computed via DH key exchange
+	S = compute_secret(p, f)
+
+	# shared secret
+	shared_secret = compute_shared_secret(method, referer, e, f, S)
+
+	# key for AES_CBC mode
+	secret_key = compute_hash(S, shared_secret, 'A', referer)
+
+    # Taking first 16 bytes, since iv needs to be 16 bytes in length
+	initialization_vector = compute_hash(S, shared_secret, 'B', referer)[0:16]
+
+    # AES object for encryption of data to be sent via HTTP
+	aes = AES.new(secret_key, AES.MODE_CBC, initialization_vector)
+
+    # received ciphertext
+	ciphertext = base64.b64decode(message['E']['ciphertext'])
+
+    # Plaintext obtained through AES decryption
+	plaintext = aes.decrypt(ciphertext)
+
+	print "[+] Received plaintext!"
+
 class ClientThread(threading.Thread):
 
     def __init__(self, ip, port, socket):
@@ -90,7 +140,7 @@ class ClientThread(threading.Thread):
     	print "Connection from: "+ self.ip + ":" + str(self.port)
     	data = self.socket.recv(10240).strip()
     	message = json.loads(data)
-    	print message
+    	authentication_request(message)
 
 def wait():
     # Declare host and port

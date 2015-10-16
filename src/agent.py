@@ -2,6 +2,7 @@ from imports import *
 
 # global variable B
 B = 0
+b = 0
 
 # Checks if the IP and the referer are present in the trusted servers file
 def isTrusted(pkey, referer):
@@ -47,6 +48,8 @@ def compute_secret(p, g, A):
     # Object of class DiffieHellman
     dh = DiffieHellman()
 
+    global B, b
+
     p = long(p)
     g = long(g)
     A = long(A)
@@ -54,7 +57,6 @@ def compute_secret(p, g, A):
     # Private key for agent
     b = dh.privateKey
 
-    global B
     B = pow(g, b, p)
 
     # Secret = (A**b)%p
@@ -106,6 +108,8 @@ def generate_ciphertext(parameters, identifier):
     # Generate string for encryption
     plaintext = str(r) + str(type_of) + str(identifier) + str(payload)
     plaintext = add_padding(plaintext)
+    
+    print plaintext
 
     # Secret generated via DH key exchange
     secret = compute_secret(parameters['p'], parameters['g'], parameters['e'])
@@ -118,7 +122,7 @@ def generate_ciphertext(parameters, identifier):
     f = B
     S = secret
 
-    # secret computed via DH key exchange
+    # shared secret
     shared_secret = compute_shared_secret(method, referer, e, f, S)
 
     # key for AES_CBC mode
@@ -127,9 +131,10 @@ def generate_ciphertext(parameters, identifier):
     # Taking first 16 bytes, since iv needs to be 16 bytes in length
     initialization_vector = compute_hash(S, shared_secret, 'B', referer)[0:16]
 
-    # Ciphertext to be sent via HTTP
+    # AES object for encryption of data to be sent via HTTP
     aes = AES.new(secret_key, AES.MODE_CBC, initialization_vector)
 
+    # Ciphertext
     ciphertext = aes.encrypt(plaintext)
 
     return base64.b64encode(ciphertext)
@@ -164,11 +169,11 @@ def session_response(parameters):
     # Add request type
     response_message = request(response_message, 'KEX_DH_RESPONSE')
 
-    # Add computed value of trusted server
-    response_message['f'] = trusted_server()
-
     # Message body of type `NEW`
     response_message['E'] = generate_NEW_message_body(parameters)
+
+    # Add computed value of trusted server
+    response_message['f'] = B
     
     return response_message
 
@@ -267,7 +272,7 @@ class ClientThread(threading.Thread):
 
                     # Generate a response message
                     response_message = session_response(parameters)
-                    print response_message
+                    # print response_message
                     send(response_message)
 
 if __name__ == "__main__":
