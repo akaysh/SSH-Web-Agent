@@ -1,8 +1,8 @@
 from imports import *
 
 # global variable B
-B = 0
-b = 0
+B = None
+b = None
 
 # Checks if the IP and the referer are present in the trusted servers file
 def isTrusted(pkey, referer):
@@ -62,25 +62,6 @@ def compute_secret(p, g, A):
     # Secret = (A**b)%p
     return pow(A, b, p)
 
-def compute_shared_secret(method, referer, e, f, S):
-    data = method + referer + str(e) + str(f) + str(S)
-
-    return SHA256.new(data).digest()
-
-def compute_hash(S, shared_secret, identifier, referer):
-    data = str(S) + shared_secret + identifier + referer
-
-    return SHA256.new(data).digest()
-
-def add_padding(plaintext):
-    l = len(plaintext)
-    i = 16
-
-    while l > i:
-        i += 16
-
-    return plaintext + '0'*(i-l)
-
 def generate_ciphertext(parameters, identifier):
     # Format of unencrypted text
     # byte[4] random
@@ -101,15 +82,11 @@ def generate_ciphertext(parameters, identifier):
     # empty for message of type NEW
     payload = ''
 
-    # padding
-    # needed to meet the block size requirements of encryption algorithm
-    padding = ''
-
     # Generate string for encryption
     plaintext = str(r) + str(type_of) + str(identifier) + str(payload)
-    plaintext = add_padding(plaintext)
     
-    print plaintext
+    # Add padding block for making block size a multiple of 16 for encryption
+    plaintext = add_padding(plaintext)
 
     # Secret generated via DH key exchange
     secret = compute_secret(parameters['p'], parameters['g'], parameters['e'])
@@ -274,6 +251,10 @@ class ClientThread(threading.Thread):
                     response_message = session_response(parameters)
                     # print response_message
                     send(response_message)
+
+                    # Receive some data
+                    data = self.socket.recv(10240).strip()
+                    print '[+] Received authentication request!'
 
 if __name__ == "__main__":
 
