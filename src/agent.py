@@ -3,7 +3,8 @@ from imports import *
 # global variable B
 B = None
 b = None
-
+publicKey = None
+signature = None
 # Checks if the IP and the referer are present in the trusted servers file
 def isTrusted(pkey, referer):
     allowed_referers = []
@@ -28,12 +29,17 @@ def isTrusted(pkey, referer):
     return False
 
 # Verifies the signature sent by the trusted server
-def verifySignature(pkey, signature, data):
+def verifySignature(pkey, sig, data):
     # Recreates the public key in required format
+    global publicKey, signature
+    
     pkey = "-----BEGIN PUBLIC KEY-----\n" + pkey + "-----END PUBLIC KEY-----"
 
     # Recreates the signature as a tuple
-    signature = ast.literal_eval(signature)
+    signature = ast.literal_eval(sig)
+
+    # Setting global variables
+    publicKey = pkey
 
     # Generates the hash of data
     hash = SHA256.new(data).digest()
@@ -154,6 +160,59 @@ def session_response(parameters):
     
     return response_message
 
+def generate_PRIVATE_message_body():
+    # Format
+    # byte[4] random
+    # byte AUTH_RESPONSE
+    # string identifier
+    # boolean status
+    # string signatures
+    # string options
+    # byte[n] padding
+
+    r = random.getrandbits(128)
+
+    # type of request to be made.
+    # AUTH_RESPONSE 0x04
+    type_of = 0x04
+
+    # identifier
+    identifier = 1
+    #status to indicate signing process sucess or faliure
+    status = True
+    #signatures contains one or more signatures uint32+string[n]
+    comment = 'comment'
+
+    signatures = '1~'+'~'+str(publicKey)+'~'+str(signature[0])+'~'+comment
+    # print publicKey
+    # pass inforemation to the trusted server in the form of key value pairs
+    # value should be encrypted with scheme es
+    # here p key is public key of the client and key is the public key of the server (here same)
+    
+    pkey = RSA.importKey(publicKey)
+
+    key = PKCS1_OAEP.new(pkey)
+    value = 'value'
+    value = key.encrypt(value)
+    option = publicKey + '~' + str(base64.b64encode(value))
+    options = '1~' + 'es~' + '~' + option
+
+    # padding = 
+    return options
+
+
+def authentication_response():
+    # Initialise a message template
+    response_message = message()
+
+    # Add request type
+    response_message = request(response_message, 'PRIVATE')
+
+    # Message body of type `PRIVATE`
+    response_message['data'] = generate_PRIVATE_message_body()
+
+    return response_message
+
 # Returns all packet parameters
 def get_params(params):
     parameters = dict()
@@ -255,6 +314,10 @@ class ClientThread(threading.Thread):
                     # Receive some data
                     data = self.socket.recv(10240).strip()
                     print '[+] Received authentication request!'
+                    
+                    authentication_response_message = authentication_response()
+                    # print response_message
+                    send(authentication_response_message)
 
 if __name__ == "__main__":
 

@@ -20,6 +20,10 @@ class ClientThread(threading.Thread):
     	data = self.socket.recv(10240).strip()
     	message = json.loads(data)
     	authentication_request(message)
+    	# data2 = self.socket.recv(10240).strip()
+    	# message2 = json.loads(data2)
+    	# print message2
+    	# print '[+] Received final authentication response'
 
 def wait():
     # Declare host and port
