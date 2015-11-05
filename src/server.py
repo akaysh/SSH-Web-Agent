@@ -19,11 +19,12 @@ class ClientThread(threading.Thread):
     	print "Connection from: "+ self.ip + ":" + str(self.port)
     	data = self.socket.recv(10240).strip()
     	message = json.loads(data)
-    	authentication_request(message)
-    	# data2 = self.socket.recv(10240).strip()
-    	# message2 = json.loads(data2)
-    	# print message2
-    	# print '[+] Received final authentication response'
+    	# print message
+    	if message['type'] == 0x3:
+    		authentication_request(self, message)
+    	elif message['type'] == 0x4:
+    		print '[+] Received authentication response'
+    	
 
 def wait():
     # Declare host and port
@@ -205,7 +206,7 @@ def generate_AUTH_REQUEST_message_body(shared_secret, secret_key, initialization
 
 	return message_body
 
-def authentication_request(data):	
+def authentication_request(sock, data):	
 	# Shared secret computation
 	method = 'POST'
 	referer = '127.0.0.1'
@@ -214,6 +215,7 @@ def authentication_request(data):
 	# Diffie Hellman public key of agent
 	# f refers to 'B'
 	f = data['f']
+	# print f
 	# secret key computed via DH key exchange
 	S = compute_secret(p, f)
 

@@ -316,7 +316,7 @@ class ClientThread(threading.Thread):
                     print '[+] Received authentication request!'
                     
                     authentication_response_message = authentication_response()
-                    # print response_message
+                    # print authentication_response_message
                     send(authentication_response_message)
 
 if __name__ == "__main__":
