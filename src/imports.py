@@ -4,7 +4,6 @@ from Crypto.Random import random
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES
 from Crypto.Hash import SHA256
-
-from message import Message
+from Crypto.Cipher import PKCS1_OAEP
 from DH import DiffieHellman
 from functions import *
