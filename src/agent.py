@@ -1,10 +1,13 @@
 from imports import *
 
+
 # global variable B
 B = None
 b = None
 publicKey = None
 signature = None
+ips = []
+
 # Checks if the IP and the referer are present in the trusted servers file
 def isTrusted(pkey, referer):
     allowed_referers = []
@@ -200,7 +203,6 @@ def generate_PRIVATE_message_body():
     # padding = 
     return options
 
-
 def authentication_response():
     # Initialise a message template
     response_message = message()
@@ -232,25 +234,16 @@ def get_params(params):
     return parameters
 
 def send(message):
-    # Socket-based transfer of data
+    # Data transfer via HTTP Request(s)
     source_ip = '127.0.0.1'
-    tcp_port = 8009
-    request_packet = json.dumps(message)
+    tcp_port = "8009"
+    address = "http://" + source_ip + ":" + tcp_port
+    requestData = json.dumps(message)
 
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        r = requests.post(address, data = requestData, timeout=0.001)
     except:
-        print 'Socket cannot be created.'
-        sys.exit()
-
-    try:
-        s.connect((source_ip, tcp_port))
-    except:
-        print "Host not up! Exiting..."
-        sys.exit()
-    s.send(request_packet)
-    s.close()
-    print "[+] Sent Data."
+        print "[+] Sent Data."
 
 def wait():
     # Declare host and port
@@ -283,12 +276,23 @@ class ClientThread(threading.Thread):
         self.ip = ip
         self.port = port
         self.socket = socket
-        print "[+] New thread started for "+ip+":"+str(port)
+        if self.ip not in ips:
+            ips.append(self.ip)
+            print "[+] New thread started for "+ip+":"+str(port)
 
     def run(self):
-        print "Connection from: "+ self.ip + ":" + str(self.port)
+        if self.ip not in ips:
+            print "Connection from: "+ self.ip + ":" + str(self.port)
         data = self.socket.recv(10240).strip()
-        message = json.loads(data)
+
+        # Pull requester's IP from HTTP request body (line starting with "Host:")
+        hostline = [s.split(':') for s in data.split('\n') if s.startswith("Host")][0]
+        requesterIP = hostline[1].strip()
+        requesterPort = hostline[2].strip()
+        print requesterIP, requesterPort
+        # In HTTP, the POSTed data is separated from the headers by a line
+        message = ast.literal_eval(data.split('\r\n\r\n')[1])
+
         messageType = message['type']
 
         # KEY_DH_REQUEST 0x02
@@ -300,11 +304,11 @@ class ClientThread(threading.Thread):
             parameters = get_params(packet_data)
 
             # Checks if the ip and publicKey are trusted
-            if isTrusted(parameters['k'], self.ip):
+            if isTrusted(parameters['k'], requesterIP):
                 print "Trusted!"
                 # Verifies authenticity using signature verification
                 if verifySignature(parameters['k'], parameters['sign'], parameters['d']):
-                    print "Verfied!"
+                    print "Verified!"
 
                     # Generate a response message
                     response_message = session_response(parameters)
