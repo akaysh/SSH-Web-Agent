@@ -60,7 +60,7 @@ def send(message):
 	tcp_port = "8008"
 	address = "http://" + source_ip + ":" + tcp_port
 	headers = {"content-type": "application/x-www-form-urlencoded"}
-	requestData = json.dumps(message)
+	requestData = message
 
 	r = requests.post(address, data = requestData, headers=headers)
 	print r.text

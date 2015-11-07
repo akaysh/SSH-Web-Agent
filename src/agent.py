@@ -248,34 +248,10 @@ def send(message):
 def wait():
     server = HTTPServer(('localhost', 8008), PostHandler)
     server.serve_forever()
-    '''
-    # Declare host and port
-    host = "0.0.0.0"
-    port = 8008
 
-    tcpsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    tcpsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    tcpsock.bind((host, port))
-
-    # Threading for multiple clients
-    threads = []
-
-    while True:
-        tcpsock.listen(4)
-        print "\n[+] Listening for incoming connections..."
-        (clientsock, (ip, port)) = tcpsock.accept()
-        newThread = ClientThread(ip, port, clientsock)
-        newThread.start()
-        threads.append(newThread)
-
-    # Join all threads
-    for t in threads:
-        t.join()
-    '''
 class PostHandler(BaseHTTPRequestHandler):
     
     def do_POST(self):
-        print 'YOYO'
         # Parse the form data posted
         form = cgi.FieldStorage(
             fp=self.rfile, 
@@ -283,28 +259,34 @@ class PostHandler(BaseHTTPRequestHandler):
             environ={'REQUEST_METHOD':'POST',
                      'CONTENT_TYPE':self.headers['Content-Type'],
                      })
-
         # Begin the response
         self.send_response(200)
+        self.send_header('Content-Type', 'text/plain')
         self.end_headers()
-        self.wfile.write('Client: %s\n' % str(self.client_address))
-        self.wfile.write('User-agent: %s\n' % str(self.headers['user-agent']))
-        self.wfile.write('Path: %s\n' % self.path)
-        self.wfile.write('Form data:\n')
 
-        # Echo back information about what was posted in the form
-        for field in form.keys():
-            field_item = form[field]
-            if field_item.filename:
-                # The field contains an uploaded file
-                file_data = field_item.file.read()
-                file_len = len(file_data)
-                del file_data
-                self.wfile.write('\tUploaded %s as "%s" (%d bytes)\n' % \
-                        (field, field_item.filename, file_len))
-            else:
-                # Regular form value
-                self.wfile.write('\t%s=%s\n' % (field, form[field].value))
+        messageType = int(form['type'].value)
+        message = form['data'].value
+        requesterIP = self.headers['Host'].split(':')[0]
+        print requesterIP
+
+        if messageType == 2:
+            # Parse data using delimiter as `~`
+            packet_data = message.split("~")
+
+            # parameters now has all the data from the packet
+            parameters = get_params(packet_data)
+
+            # Checks if the ip and publicKey are trusted
+            if isTrusted(parameters['k'], requesterIP):
+                print "Trusted!"
+                # Verifies authenticity using signature verification
+                if verifySignature(parameters['k'], parameters['sign'], parameters['d']):
+                    print "Verified!"
+
+                    # Generate a response message
+                    response_message = session_response(parameters)
+                    # print response_message
+                    self.wfile.write(response_message)
         return
 
 class ClientThread(threading.Thread):
