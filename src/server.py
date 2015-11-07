@@ -59,12 +59,11 @@ def send(message):
 	source_ip = '127.0.0.1'
 	tcp_port = "8008"
 	address = "http://" + source_ip + ":" + tcp_port
+	headers = {"content-type": "application/x-www-form-urlencoded"}
 	requestData = json.dumps(message)
 
-	try:
-		r = requests.post(address, data = requestData, timeout=0.001)
-	except:
-		print "[+] Sent Data."
+	r = requests.post(address, data = requestData, headers=headers)
+	print r.text
 
 # Diffie-Hellman key exchange parameters
 def diffie_hellman():

@@ -1,5 +1,7 @@
 import socket, random, sys, json, pdb, threading, ast, base64
 import requests
+from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+import cgi
 
 from Crypto.Random import random
 from Crypto.PublicKey import RSA

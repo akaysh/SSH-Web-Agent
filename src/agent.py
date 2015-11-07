@@ -246,6 +246,9 @@ def send(message):
         print "[+] Sent Data."
 
 def wait():
+    server = HTTPServer(('localhost', 8008), PostHandler)
+    server.serve_forever()
+    '''
     # Declare host and port
     host = "0.0.0.0"
     port = 8008
@@ -268,6 +271,41 @@ def wait():
     # Join all threads
     for t in threads:
         t.join()
+    '''
+class PostHandler(BaseHTTPRequestHandler):
+    
+    def do_POST(self):
+        print 'YOYO'
+        # Parse the form data posted
+        form = cgi.FieldStorage(
+            fp=self.rfile, 
+            headers=self.headers,
+            environ={'REQUEST_METHOD':'POST',
+                     'CONTENT_TYPE':self.headers['Content-Type'],
+                     })
+
+        # Begin the response
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write('Client: %s\n' % str(self.client_address))
+        self.wfile.write('User-agent: %s\n' % str(self.headers['user-agent']))
+        self.wfile.write('Path: %s\n' % self.path)
+        self.wfile.write('Form data:\n')
+
+        # Echo back information about what was posted in the form
+        for field in form.keys():
+            field_item = form[field]
+            if field_item.filename:
+                # The field contains an uploaded file
+                file_data = field_item.file.read()
+                file_len = len(file_data)
+                del file_data
+                self.wfile.write('\tUploaded %s as "%s" (%d bytes)\n' % \
+                        (field, field_item.filename, file_len))
+            else:
+                # Regular form value
+                self.wfile.write('\t%s=%s\n' % (field, form[field].value))
+        return
 
 class ClientThread(threading.Thread):
 
