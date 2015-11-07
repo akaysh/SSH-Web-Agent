@@ -8,62 +8,23 @@ a = 0
 p = 0
 ips = []
 
-class ClientThread(threading.Thread):
-
-    def __init__(self, ip, port, socket):
-        threading.Thread.__init__(self)
-        self.ip = ip
-        self.port = port
-        self.socket = socket
-        if self.ip not in ips:
-        	ips.append(self.ip)
-        	print "[+] New thread started for " + ip + ":" + str(port)
-
-    def run(self):
-    	if self.ip not in ips:
-    		print "Connection from: "+ self.ip + ":" + str(self.port)
-    	data = self.socket.recv(10240).strip()
-    	# In HTTP, the POSTed data is separated from the headers by a line
-    	message = ast.literal_eval(data.split('\r\n\r\n')[1])
-    	if message['type'] == 0x3:
-    		authentication_request(self, message)
-    	elif message['type'] == 0x4:
-    		print '[+] Received authentication response'
-
-def wait():
-    # Declare host and port
-    host = "0.0.0.0"
-    port = 8009
-
-    tcpsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    tcpsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    tcpsock.bind((host, port))
-
-    # Threading for multiple clients
-    threads = []
-
-    while True:
-        tcpsock.listen(4)
-        print "\n[+] Listening for incoming connections..."
-        (clientsock, (ip, port)) = tcpsock.accept()
-        newThread = ClientThread(ip, port, clientsock)
-        newThread.start()
-        threads.append(newThread)
-
-    # Join all threads
-    for t in threads:
-        t.join()
-
 def send(message):
 	# Data transfer via HTTP Request(s)
 	source_ip = '127.0.0.1'
-	tcp_port = "8008"
-	address = "http://" + source_ip + ":" + tcp_port
+	tcp_port = "8010"
+	address = "http://127.0.0.1:8008"
 	headers = {"content-type": "application/x-www-form-urlencoded"}
-	requestData = message
+	# requestData = json.dumps(message)
 
-	r = requests.post(address, data = requestData, headers=headers)
-	print r.text
+	req = requests.post(address, data = message, headers=headers)
+	# print r.text
+	pdb.set_trace()
+	# print req.text
+	message = ast.literal_eval(req.content)
+	if message['type'] == 0x3:
+		authentication_request(self, message)
+	elif message['type'] == 0x4:
+		print '[+] Received authentication response'
 
 # Diffie-Hellman key exchange parameters
 def diffie_hellman():
@@ -248,4 +209,4 @@ def authentication_request(sock, data):
 if __name__ == "__main__":
 
 	send(session_request())
-	wait()
+	# wait()
