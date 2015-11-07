@@ -17,12 +17,10 @@ def send(message):
 	# requestData = json.dumps(message)
 
 	req = requests.post(address, data = message, headers=headers)
-	# print r.text
-	pdb.set_trace()
-	# print req.text
 	message = ast.literal_eval(req.content)
+
 	if message['type'] == 0x3:
-		authentication_request(self, message)
+		authentication_request(message)
 	elif message['type'] == 0x4:
 		print '[+] Received authentication response'
 
@@ -144,24 +142,24 @@ def generate_AUTH_REQUEST_message_body(shared_secret, secret_key, initialization
 	# string identifier (session_identifier)
 	# string ciphertext (encrypted part of message body)
 
-	message_body = dict()
+	message_body = ''
 
     # Specifies the type of algorithm to be used for encryption
     # AES_256_CBC 0x02
-	message_body['algorithm'] = 0x02
+	message_body+= '0x02~'
 
     # Session identifier set by agent.
     # ******** TDB *********************
     # identifier = generate_identifier()
 	identifier = '1'
-	message_body['session_identifier'] = identifier
+	message_body += identifier+'~'
 
     # Generate Ciphertext
-	message_body['ciphertext'] = generate_ciphertext(shared_secret, secret_key, initialization_vector, identifier)
+	message_body += generate_ciphertext(shared_secret, secret_key, initialization_vector, identifier)
 
 	return message_body
 
-def authentication_request(sock, data):	
+def authentication_request(data):	
 	# Shared secret computation
 	method = 'POST'
 	referer = '127.0.0.1'
@@ -202,7 +200,8 @@ def authentication_request(sock, data):
 	auth_message = request(auth_message, 'PRIVATE')
 
 	# message_body
-	auth_message['message'] = generate_AUTH_REQUEST_message_body(shared_secret, secret_key, initialization_vector)
+	auth_message['data'] = generate_AUTH_REQUEST_message_body(shared_secret, secret_key, initialization_vector)
+
 
 	send(auth_message)
 

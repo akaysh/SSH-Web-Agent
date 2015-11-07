@@ -267,7 +267,6 @@ class PostHandler(BaseHTTPRequestHandler):
         messageType = int(form['type'].value)
         message = form['data'].value
         requesterIP = self.headers['Host'].split(':')[0]
-        print requesterIP
 
         if messageType == 2:
             # Parse data using delimiter as `~`
@@ -287,61 +286,10 @@ class PostHandler(BaseHTTPRequestHandler):
                     response_message = session_response(parameters)
                     # print response_message
                     self.wfile.write(response_message)
+        else:
+            self.wfile.write(authentication_response())
+
         return
-
-class ClientThread(threading.Thread):
-
-    def __init__(self, ip, port, socket):
-        threading.Thread.__init__(self)
-        self.ip = ip
-        self.port = port
-        self.socket = socket
-        if self.ip not in ips:
-            ips.append(self.ip)
-            print "[+] New thread started for "+ip+":"+str(port)
-
-    def run(self):
-        if self.ip not in ips:
-            print "Connection from: "+ self.ip + ":" + str(self.port)
-        data = self.socket.recv(10240).strip()
-
-        # Pull requester's IP from HTTP request body (line starting with "Host:")
-        hostline = [s.split(':') for s in data.split('\n') if s.startswith("Host")][0]
-        requesterIP = hostline[1].strip()
-        requesterPort = hostline[2].strip()
-        print requesterIP, requesterPort
-        # In HTTP, the POSTed data is separated from the headers by a line
-        message = ast.literal_eval(data.split('\r\n\r\n')[1])
-
-        messageType = message['type']
-
-        # KEY_DH_REQUEST 0x02
-        if messageType == 2:
-            # Parse data using delimiter as `~`
-            packet_data = message["data"].split("~")
-
-            # parameters now has all the data from the packet
-            parameters = get_params(packet_data)
-
-            # Checks if the ip and publicKey are trusted
-            if isTrusted(parameters['k'], requesterIP):
-                print "Trusted!"
-                # Verifies authenticity using signature verification
-                if verifySignature(parameters['k'], parameters['sign'], parameters['d']):
-                    print "Verified!"
-
-                    # Generate a response message
-                    response_message = session_response(parameters)
-                    # print response_message
-                    send(response_message)
-
-                    # Receive some data
-                    data = self.socket.recv(10240).strip()
-                    print '[+] Received authentication request!'
-                    
-                    authentication_response_message = authentication_response()
-                    # print authentication_response_message
-                    send(authentication_response_message)
 
 if __name__ == "__main__":
 

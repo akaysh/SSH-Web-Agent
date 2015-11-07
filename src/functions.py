@@ -1,5 +1,6 @@
 from imports import *
 
+
 # Add padding to plaintext to make length same as block size of AES_CBC_256 mode
 def add_padding(plaintext):
     l = len(plaintext)
@@ -59,4 +60,4 @@ def message():
 	message = identify(message)
 	message = version(message)
 
-	return message	
+	return message
