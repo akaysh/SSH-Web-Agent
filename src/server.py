@@ -1,10 +1,12 @@
 from imports import *
 
+
 # A and a refer to DH public and private key respectively
 A = 0
 a = 0
 # DH prime
 p = 0
+ips = []
 
 class ClientThread(threading.Thread):
 
@@ -13,18 +15,20 @@ class ClientThread(threading.Thread):
         self.ip = ip
         self.port = port
         self.socket = socket
-        print "[+] New thread started for " + ip + ":" + str(port)
+        if self.ip not in ips:
+        	ips.append(self.ip)
+        	print "[+] New thread started for " + ip + ":" + str(port)
 
     def run(self):
-    	print "Connection from: "+ self.ip + ":" + str(self.port)
+    	if self.ip not in ips:
+    		print "Connection from: "+ self.ip + ":" + str(self.port)
     	data = self.socket.recv(10240).strip()
-    	message = json.loads(data)
-    	# print message
+    	# In HTTP, the POSTed data is separated from the headers by a line
+    	message = ast.literal_eval(data.split('\r\n\r\n')[1])
     	if message['type'] == 0x3:
     		authentication_request(self, message)
     	elif message['type'] == 0x4:
     		print '[+] Received authentication response'
-    	
 
 def wait():
     # Declare host and port
@@ -51,25 +55,15 @@ def wait():
         t.join()
 
 def send(message):
-	# Socket-based transfer of data
+	# Data transfer via HTTP Request(s)
 	source_ip = '127.0.0.1'
-	tcp_port = 8008
-	request_packet = json.dumps(message)
+	tcp_port = "8008"
+	address = "http://" + source_ip + ":" + tcp_port
+	headers = {"content-type": "application/x-www-form-urlencoded"}
+	requestData = json.dumps(message)
 
-	try:
-		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	except:
-		print 'Socket cannot be created.'
-		sys.exit()
-
-	try:
-		s.connect((source_ip, tcp_port))
-	except:
-		print "Host not up! Exiting..."
-		sys.exit()
-	s.send(request_packet)
-	s.close()
-	print "[+] Sent Data."
+	r = requests.post(address, data = requestData, headers=headers)
+	print r.text
 
 # Diffie-Hellman key exchange parameters
 def diffie_hellman():

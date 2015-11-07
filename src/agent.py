@@ -1,10 +1,13 @@
 from imports import *
 
+
 # global variable B
 B = None
 b = None
 publicKey = None
 signature = None
+ips = []
+
 # Checks if the IP and the referer are present in the trusted servers file
 def isTrusted(pkey, referer):
     allowed_referers = []
@@ -200,7 +203,6 @@ def generate_PRIVATE_message_body():
     # padding = 
     return options
 
-
 def authentication_response():
     # Initialise a message template
     response_message = message()
@@ -232,27 +234,21 @@ def get_params(params):
     return parameters
 
 def send(message):
-    # Socket-based transfer of data
+    # Data transfer via HTTP Request(s)
     source_ip = '127.0.0.1'
-    tcp_port = 8009
-    request_packet = json.dumps(message)
+    tcp_port = "8009"
+    address = "http://" + source_ip + ":" + tcp_port
+    requestData = json.dumps(message)
 
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        r = requests.post(address, data = requestData, timeout=0.001)
     except:
-        print 'Socket cannot be created.'
-        sys.exit()
-
-    try:
-        s.connect((source_ip, tcp_port))
-    except:
-        print "Host not up! Exiting..."
-        sys.exit()
-    s.send(request_packet)
-    s.close()
-    print "[+] Sent Data."
+        print "[+] Sent Data."
 
 def wait():
+    server = HTTPServer(('localhost', 8008), PostHandler)
+    server.serve_forever()
+    '''
     # Declare host and port
     host = "0.0.0.0"
     port = 8008
@@ -275,6 +271,41 @@ def wait():
     # Join all threads
     for t in threads:
         t.join()
+    '''
+class PostHandler(BaseHTTPRequestHandler):
+    
+    def do_POST(self):
+        print 'YOYO'
+        # Parse the form data posted
+        form = cgi.FieldStorage(
+            fp=self.rfile, 
+            headers=self.headers,
+            environ={'REQUEST_METHOD':'POST',
+                     'CONTENT_TYPE':self.headers['Content-Type'],
+                     })
+
+        # Begin the response
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write('Client: %s\n' % str(self.client_address))
+        self.wfile.write('User-agent: %s\n' % str(self.headers['user-agent']))
+        self.wfile.write('Path: %s\n' % self.path)
+        self.wfile.write('Form data:\n')
+
+        # Echo back information about what was posted in the form
+        for field in form.keys():
+            field_item = form[field]
+            if field_item.filename:
+                # The field contains an uploaded file
+                file_data = field_item.file.read()
+                file_len = len(file_data)
+                del file_data
+                self.wfile.write('\tUploaded %s as "%s" (%d bytes)\n' % \
+                        (field, field_item.filename, file_len))
+            else:
+                # Regular form value
+                self.wfile.write('\t%s=%s\n' % (field, form[field].value))
+        return
 
 class ClientThread(threading.Thread):
 
@@ -283,12 +314,23 @@ class ClientThread(threading.Thread):
         self.ip = ip
         self.port = port
         self.socket = socket
-        print "[+] New thread started for "+ip+":"+str(port)
+        if self.ip not in ips:
+            ips.append(self.ip)
+            print "[+] New thread started for "+ip+":"+str(port)
 
     def run(self):
-        print "Connection from: "+ self.ip + ":" + str(self.port)
+        if self.ip not in ips:
+            print "Connection from: "+ self.ip + ":" + str(self.port)
         data = self.socket.recv(10240).strip()
-        message = json.loads(data)
+
+        # Pull requester's IP from HTTP request body (line starting with "Host:")
+        hostline = [s.split(':') for s in data.split('\n') if s.startswith("Host")][0]
+        requesterIP = hostline[1].strip()
+        requesterPort = hostline[2].strip()
+        print requesterIP, requesterPort
+        # In HTTP, the POSTed data is separated from the headers by a line
+        message = ast.literal_eval(data.split('\r\n\r\n')[1])
+
         messageType = message['type']
 
         # KEY_DH_REQUEST 0x02
@@ -300,11 +342,11 @@ class ClientThread(threading.Thread):
             parameters = get_params(packet_data)
 
             # Checks if the ip and publicKey are trusted
-            if isTrusted(parameters['k'], self.ip):
+            if isTrusted(parameters['k'], requesterIP):
                 print "Trusted!"
                 # Verifies authenticity using signature verification
                 if verifySignature(parameters['k'], parameters['sign'], parameters['d']):
-                    print "Verfied!"
+                    print "Verified!"
 
                     # Generate a response message
                     response_message = session_response(parameters)
