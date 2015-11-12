@@ -2,17 +2,14 @@ import commands, pdb
 from flask import render_template, request
 from app import app
 
-
-@app.route('/')
-@app.route('/index')
-def index():
-    return "Hello, world!"
-
-
 @app.route('/webagent')
 def webagent():
     return render_template('webagent.html')
 
+@app.route('/')
+@app.route('/server')
+def server():
+	return render_template('server.html')
 
 # @app.route('/success', methods=['POST'])
 # def success():
