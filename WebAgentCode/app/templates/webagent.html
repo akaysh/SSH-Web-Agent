@@ -1,0 +1,42 @@
+﻿<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Terminal</title>
+    <link rel="stylesheet" media="all" href="../static/css/terminal-1.0.0.min.css">
+  </head>
+<body>
+  <div id="terminal"></div>
+
+<script src="../static/js/jquery.min.js"></script>
+<script src="../static/js/terminal-1.0.0.min.js"></script>
+<script>
+
+// Convert the 'terminal' DOM element into a live terminal.
+// This example defines several custom commands for the terminal.
+var terminal = new Terminal('terminal', {}, {
+  execute: function(cmd, args) {
+        var res, arg;
+        if(typeof args[0] == 'undefined') {
+          arg = '';
+        } else {
+          arg = args[0];
+        }
+        $.when($.ajax({
+          method: "POST",
+          async: false,
+          url: "http://localhost:5000/api/sys",
+          data: {
+            command: cmd,
+            arguments: arg
+          }
+        }).done(function(result) {
+          res = result;
+        }));
+        return res;
+  }
+});
+</script>
+
+</body>
+</html>
