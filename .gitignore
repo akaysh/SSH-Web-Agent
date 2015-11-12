@@ -1,3 +1,5 @@
 *.pyc
 .ssh/*
 trusted.txt
+WebAgentCode/flask/*
+.ssh/*
