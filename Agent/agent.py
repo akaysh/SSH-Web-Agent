@@ -286,6 +286,16 @@ class PostHandler(BaseHTTPRequestHandler):
                     response_message = session_response(parameters)
                     # print response_message
                     self.wfile.write(response_message)
+                else:
+                    error_message = dict()
+                    error_message['message'] = "Signature not verified."
+                    error_message['type'] = 0x1337
+                    self.wfile.write(error_message)
+            else:
+                error_message = dict()
+                error_message['message'] = "Not Trusted."
+                error_message['type'] = 0x1337                
+                self.wfile.write(error_message)                
         else:
             self.wfile.write(authentication_response())
 

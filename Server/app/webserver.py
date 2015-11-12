@@ -7,9 +7,11 @@ a = 0
 # DH prime
 p = 0
 ips = []
+messages = []
 
 def send(message):
 	# Data transfer via HTTP Request(s)
+	global messages
 	source_ip = '127.0.0.1'
 	tcp_port = "8010"
 	address = "http://127.0.0.1:8008"
@@ -22,7 +24,9 @@ def send(message):
 	if message['type'] == 0x3:
 		authentication_request(message)
 	elif message['type'] == 0x4:
-		print "[+] Authentication Response Received"
+		messages.append("Success!")
+	else:
+		messages.append(message['message'])
 
 # Diffie-Hellman key exchange parameters
 def diffie_hellman():
@@ -202,9 +206,11 @@ def authentication_request(data):
 	# message_body
 	auth_message['data'] = generate_AUTH_REQUEST_message_body(shared_secret, secret_key, initialization_vector)
 
-
 	send(auth_message)
 
 def start():
-	send(session_request())
-	return "Success!"
+	response = send(session_request())
+	if "Success!" in messages:
+		return "Success!"
+	else:
+		return "Failure!"
