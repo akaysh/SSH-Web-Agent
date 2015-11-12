@@ -1,3 +1,4 @@
 *.pyc
 Agent/trusted.txt
 Server/flask/*
+.ssh/*
