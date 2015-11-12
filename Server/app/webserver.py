@@ -22,7 +22,7 @@ def send(message):
 	if message['type'] == 0x3:
 		authentication_request(message)
 	elif message['type'] == 0x4:
-		return "Success!"
+		print "[+] Authentication Response Received"
 
 # Diffie-Hellman key exchange parameters
 def diffie_hellman():
@@ -207,3 +207,4 @@ def authentication_request(data):
 
 def start():
 	send(session_request())
+	return "Success!"
